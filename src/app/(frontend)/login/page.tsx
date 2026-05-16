@@ -1,0 +1,99 @@
+import { signIn } from "@/lib/auth";
+import { redirect } from "next/navigation";
+
+export default async function LoginPage(props: {
+  searchParams: Promise<{ callbackUrl?: string; error?: string; registered?: string }>;
+}) {
+  const searchParams = await props.searchParams;
+
+  async function handleSubmit(formData: FormData) {
+    "use server";
+
+    const result = await signIn("credentials", {
+      email: formData.get("email") as string,
+      password: formData.get("password") as string,
+      redirect: false,
+    });
+
+    if (result?.error) {
+      redirect(`/login?error=${encodeURIComponent(result.error)}${searchParams.callbackUrl ? `&callbackUrl=${searchParams.callbackUrl}` : ""}`);
+    }
+
+    redirect(searchParams.callbackUrl || "/");
+  }
+
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4">
+      <div className="w-full max-w-md space-y-8 rounded-xl bg-white p-8 shadow-md">
+        <div className="text-center">
+          <h2 className="text-2xl font-bold text-gray-900">Sign in</h2>
+          <p className="mt-2 text-sm text-gray-600">
+            Or{" "}
+            <a href="/register" className="font-medium text-green-600 hover:text-green-500">
+              create a new account
+            </a>
+          </p>
+        </div>
+
+        {searchParams.registered && (
+          <div className="rounded-md bg-green-50 p-3 text-sm text-green-700">
+            Account created! Sign in below.
+          </div>
+        )}
+
+        {searchParams.error && (
+          <div className="rounded-md bg-red-50 p-3 text-sm text-red-700">
+            {searchParams.error === "CredentialsSignin"
+              ? "Invalid email or password"
+              : searchParams.error}
+          </div>
+        )}
+
+        <form action={handleSubmit} className="mt-8 space-y-6">
+          <div className="space-y-4">
+            <div>
+              <label htmlFor="email" className="block text-sm font-medium text-gray-700">
+                Email or Username
+              </label>
+              <input
+                id="email"
+                name="email"
+                type="text"
+                autoComplete="email"
+                required
+                className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-green-500 focus:outline-none focus:ring-1 focus:ring-green-500 sm:text-sm"
+                placeholder="you@example.com"
+              />
+            </div>
+            <div>
+              <label htmlFor="password" className="block text-sm font-medium text-gray-700">
+                Password
+              </label>
+              <input
+                id="password"
+                name="password"
+                type="password"
+                autoComplete="current-password"
+                required
+                className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-green-500 focus:outline-none focus:ring-1 focus:ring-green-500 sm:text-sm"
+              />
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between">
+            <a href="/forgot-password" className="text-sm font-medium text-green-600 hover:text-green-500">
+              Forgot password?
+            </a>
+          </div>
+
+          <button
+            type="submit"
+            className="flex w-full justify-center rounded-md bg-green-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-green-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600"
+          >
+            Sign in
+          </button>
+        </form>
+      </div>
+    </div>
+  );
+}
