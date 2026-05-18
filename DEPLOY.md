@@ -14,7 +14,7 @@
 ┌─────────────────────────────────────────────────────────────┐
 │                        Backend (Render)                      │
 │  Express.js | Prisma ORM | JWT Auth | Rate Limiting          │
-│  URL: https://eaty-backend.onrender.com                      │
+│  URL: https://eaty.onrender.com                      │
 └──────────────────────────┬──────────────────────────────────┘
                            │ Prisma Client
                            ▼
