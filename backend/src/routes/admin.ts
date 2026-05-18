@@ -76,7 +76,7 @@ function createCrudRouter(model: string, idField = "id") {
 
   r.patch("/:id", strictLimiter, async (req, res) => {
     try {
-      const id = BigInt(req.params.id);
+      const id = BigInt(req.params.id as string);
       const item = await (prisma as any)[model].update({ where: { [idField]: id }, data: req.body });
       res.json({ data: { ...item, id: item.id?.toString() } });
     } catch {
@@ -86,7 +86,7 @@ function createCrudRouter(model: string, idField = "id") {
 
   r.delete("/:id", strictLimiter, async (req, res) => {
     try {
-      const id = BigInt(req.params.id);
+      const id = BigInt(req.params.id as string);
       await (prisma as any)[model].delete({ where: { [idField]: id } });
       res.json({ message: "Deleted" });
     } catch {
@@ -193,7 +193,7 @@ router.get("/online-orders", async (req, res) => {
 router.patch("/online-orders/:id", async (req, res) => {
   try {
     const order = await prisma.order.update({
-      where: { id: BigInt(req.params.id) },
+      where: { id: BigInt(req.params.id as string) },
       data: req.body,
     });
     res.json({ data: { ...order, id: order.id.toString() } });
@@ -231,7 +231,7 @@ router.get("/kds-orders", async (req, res) => {
 router.patch("/kds-orders/:id", async (req, res) => {
   try {
     const order = await prisma.order.update({
-      where: { id: BigInt(req.params.id) },
+      where: { id: BigInt(req.params.id as string) },
       data: req.body,
     });
     res.json({ data: { ...order, id: order.id.toString() } });
