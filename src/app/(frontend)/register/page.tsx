@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { apiFetch } from "@/lib/api-client";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -15,31 +16,23 @@ export default function RegisterPage() {
 
     const formData = new FormData(e.currentTarget);
     const body = {
-      name: formData.get("name"),
-      username: formData.get("username"),
-      email: formData.get("email") || null,
-      phone: formData.get("phone") || null,
-      password: formData.get("password"),
-      countryCode: formData.get("countryCode") || null,
+      name: formData.get("name") as string,
+      username: formData.get("username") as string,
+      email: (formData.get("email") as string) || null,
+      phone: (formData.get("phone") as string) || null,
+      password: formData.get("password") as string,
+      countryCode: (formData.get("countryCode") as string) || null,
     };
 
     try {
-      const res = await fetch("/api/auth/register", {
+      await apiFetch("/api/auth/register", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
       });
 
-      const data = await res.json();
-
-      if (!res.ok) {
-        setError(data.error);
-        return;
-      }
-
       router.push("/login?registered=true");
-    } catch {
-      setError("Something went wrong. Try again.");
+    } catch (err: any) {
+      setError(err.message || "Something went wrong. Try again.");
     } finally {
       setLoading(false);
     }

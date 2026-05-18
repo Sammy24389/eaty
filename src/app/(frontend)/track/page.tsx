@@ -1,10 +1,11 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useSession } from "next-auth/react";
+import { useAuth } from "@/contexts/AuthContext";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Loader2, MapPin, Clock, Phone } from "lucide-react";
+import { apiFetch } from "@/lib/api-client";
 
 interface Order {
   id: string;
@@ -26,21 +27,21 @@ const statusSteps = [
 ];
 
 export default function OrderTrackingPage() {
-  const { data: session } = useSession();
+  const { user, loading: authLoading } = useAuth();
   const router = useRouter();
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
   const [orderId, setOrderId] = useState("");
 
   useEffect(() => {
-    if (!session) return;
+    if (!user) return;
     const params = new URLSearchParams(window.location.search);
     const id = params.get("id") || params.get("orderId");
     if (id) {
       setOrderId(id);
       fetchOrder(id);
     }
-  }, [session]);
+  }, [user]);
 
   useEffect(() => {
     if (!orderId) return;
@@ -50,8 +51,7 @@ export default function OrderTrackingPage() {
 
   const fetchOrder = async (id: string) => {
     try {
-      const res = await fetch(`/api/frontend/orders?id=${id}`);
-      const data = await res.json();
+      const data = await apiFetch(`/api/frontend/orders?id=${id}`);
       if (data.data) setOrder(data.data);
     } catch {
       console.error("Failed to fetch order");
@@ -60,7 +60,15 @@ export default function OrderTrackingPage() {
     }
   };
 
-  if (!session) {
+  if (authLoading) {
+    return (
+      <div className="max-w-2xl mx-auto px-4 py-16 text-center">
+        <Loader2 className="w-8 h-8 text-primary animate-spin mx-auto" />
+      </div>
+    );
+  }
+
+  if (!user) {
     return (
       <div className="max-w-2xl mx-auto px-4 py-16 text-center">
         <h1 className="text-3xl font-bold mb-4">Login Required</h1>

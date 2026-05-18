@@ -1,9 +1,10 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { useSession } from "next-auth/react";
+import { useAuth } from "@/contexts/AuthContext";
 import { Send, Loader2 } from "lucide-react";
 import Link from "next/link";
+import { apiFetch } from "@/lib/api-client";
 
 interface Message {
   id: string;
@@ -14,7 +15,7 @@ interface Message {
 }
 
 export default function CustomerMessagesPage() {
-  const { data: session } = useSession();
+  const { user, loading: authLoading } = useAuth();
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState("");
   const [loading, setLoading] = useState(true);
@@ -22,8 +23,8 @@ export default function CustomerMessagesPage() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (session?.user?.id) fetchMessages();
-  }, [session]);
+    if (user?.id) fetchMessages();
+  }, [user]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -31,8 +32,7 @@ export default function CustomerMessagesPage() {
 
   const fetchMessages = async () => {
     try {
-      const res = await fetch("/api/frontend/messages");
-      const data = await res.json();
+      const data = await apiFetch("/api/frontend/messages");
       setMessages(data.data || []);
     } catch {
       console.error("Failed to fetch messages");
@@ -47,9 +47,8 @@ export default function CustomerMessagesPage() {
 
     setSending(true);
     try {
-      await fetch("/api/frontend/messages", {
+      await apiFetch("/api/frontend/messages", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ body: newMessage }),
       });
       setNewMessage("");
@@ -61,7 +60,15 @@ export default function CustomerMessagesPage() {
     }
   };
 
-  if (!session) {
+  if (authLoading) {
+    return (
+      <div className="max-w-2xl mx-auto px-4 py-16 text-center">
+        <Loader2 className="w-8 h-8 text-primary animate-spin mx-auto" />
+      </div>
+    );
+  }
+
+  if (!user) {
     return (
       <div className="max-w-2xl mx-auto px-4 py-16 text-center">
         <h1 className="text-3xl font-bold mb-4">Login Required</h1>

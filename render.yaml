@@ -1,33 +1,26 @@
 services:
   - type: web
-    name: eaty
+    name: eaty-backend
     env: node
     region: virginia
     plan: free
+    rootDir: backend
     buildCommand: npm install && npx prisma generate && npm run build
     startCommand: npx prisma migrate deploy && npm start
-    healthCheckPath: /
+    healthCheckPath: /health
     envVars:
       - key: NODE_VERSION
         value: 20
       - key: NODE_ENV
         value: production
-      - key: NEXTAUTH_SECRET
+      - key: JWT_SECRET
         generateValue: true
-      - key: NEXTAUTH_URL
-        fromService:
-          name: eaty
-          type: web
-          envVarKey: RENDER_EXTERNAL_URL
       - key: DATABASE_URL
         fromDatabase:
           name: eaty-db
           property: connectionString
-      - key: NEXT_PUBLIC_URL
-        fromService:
-          name: eaty
-          type: web
-          envVarKey: RENDER_EXTERNAL_URL
+      - key: FRONTEND_URL
+        sync: false
 
 databases:
   - name: eaty-db

@@ -1,16 +1,19 @@
-import { auth } from "@/lib/auth";
+import { cookies } from "next/headers";
+import { jwtVerify } from "jose";
 import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
+import { apiFetch } from "@/lib/api-client";
 
-async function getOrder(orderId: string, userId: string) {
+async function getUserFromToken() {
+  const cookieStore = await cookies();
+  const token = cookieStore.get("auth_token")?.value;
+
+  if (!token) return null;
+
   try {
-    const res = await fetch(
-      `${process.env.NEXT_PUBLIC_URL || "http://localhost:3000"}/api/frontend/orders?id=${orderId}&userId=${userId}`,
-      { next: { revalidate: 0 } }
-    );
-    if (!res.ok) return null;
-    const data = await res.json();
-    return data.data || null;
+    const secret = new TextEncoder().encode(process.env.JWT_SECRET || "fallback-secret");
+    const { payload } = await jwtVerify(token, secret);
+    return { id: payload.id as string };
   } catch {
     return null;
   }
@@ -22,10 +25,17 @@ export default async function OrderDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const session = await auth();
-  if (!session?.user?.id) redirect("/login");
+  const user = await getUserFromToken();
+  if (!user?.id) redirect("/login");
 
-  const order = await getOrder(id, session.user.id);
+  let order: any = null;
+  try {
+    const data = await apiFetch(`/api/frontend/orders?id=${id}&userId=${user.id}`);
+    order = data.data || null;
+  } catch {
+    order = null;
+  }
+
   if (!order) notFound();
 
   const statusSteps = [

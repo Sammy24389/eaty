@@ -1,6 +1,6 @@
 "use client";
 
-import { useSession, signOut } from "next-auth/react";
+import { useAuth } from "@/contexts/AuthContext";
 import { User, LogOut, Menu } from "lucide-react";
 
 export default function AdminHeader({
@@ -8,7 +8,7 @@ export default function AdminHeader({
 }: {
   onToggleSidebar: () => void;
 }) {
-  const { data: session } = useSession();
+  const { user, logout } = useAuth();
 
   return (
     <header className="bg-white border-b px-4 py-3 flex items-center justify-between sticky top-0 z-40">
@@ -30,12 +30,12 @@ export default function AdminHeader({
             <User className="w-4 h-4" />
           </div>
           <span className="text-sm font-medium hidden sm:block">
-            {session?.user?.name || "Admin"}
+            {user?.name || "Admin"}
           </span>
         </div>
 
         <button
-          onClick={() => signOut({ callbackUrl: "/admin/login" })}
+          onClick={logout}
           className="p-2 hover:bg-gray-100 rounded-lg text-gray-500"
         >
           <LogOut className="w-5 h-5" />

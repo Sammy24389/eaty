@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
+import { jwtVerify } from "jose";
 
 const publicPaths = [
   "/",
@@ -21,7 +21,6 @@ const publicPaths = [
 const adminPaths = ["/admin"];
 
 export async function middleware(request: NextRequest) {
-  const session = await auth();
   const { pathname } = request.nextUrl;
 
   const isPublicPath = publicPaths.some(
@@ -32,55 +31,33 @@ export async function middleware(request: NextRequest) {
     (path) => pathname === path || pathname.startsWith(path + "/")
   );
 
-  if (!isPublicPath && !session) {
+  const token = request.cookies.get("auth_token")?.value;
+
+  if (!isPublicPath && !token) {
     const loginUrl = new URL("/login", request.url);
     loginUrl.searchParams.set("callbackUrl", pathname);
     return NextResponse.redirect(loginUrl);
   }
 
-  if (isAdminPath && session?.user?.id) {
-    const user = await fetchUserRole(session.user.id);
-    if (user?.role !== "admin" && user?.role !== "branch_manager" && user?.role !== "pos_operator") {
-      return NextResponse.redirect(new URL("/", request.url));
+  if (isAdminPath && token) {
+    try {
+      const secret = new TextEncoder().encode(process.env.JWT_SECRET || "fallback-secret");
+      const { payload } = await jwtVerify(token, secret);
+      const role = payload.roleType as string;
+
+      if (role !== "admin" && role !== "branch_manager" && role !== "pos_operator") {
+        return NextResponse.redirect(new URL("/", request.url));
+      }
+    } catch {
+      const loginUrl = new URL("/admin/login", request.url);
+      return NextResponse.redirect(loginUrl);
     }
   }
 
   return NextResponse.next();
 }
 
-async function fetchUserRole(userId: string) {
-  try {
-    const { prisma } = await import("@/lib/db");
-    const user = await prisma.user.findUnique({
-      where: { id: BigInt(userId) },
-      select: { id: true, name: true, email: true },
-    });
-
-    if (!user) return null;
-
-    const roleMapping = await prisma.role.findFirst({
-      where: {
-        modelHasRoles: {
-          some: {
-            modelType: "User",
-            modelMorphKey: BigInt(userId),
-          },
-        },
-      },
-      select: { name: true },
-    });
-
-    return {
-      id: user.id.toString(),
-      name: user.name,
-      email: user.email,
-      role: roleMapping?.name || "customer",
-    };
-  } catch {
-    return null;
-  }
-}
-
 export const config = {
   matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
+  runtime: "nodejs",
 };

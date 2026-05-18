@@ -2,12 +2,13 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { useSession } from "next-auth/react";
+import { useAuth } from "@/contexts/AuthContext";
 import { useCartStore } from "@/lib/store/cart";
+import { apiFetch } from "@/lib/api-client";
 import Link from "next/link";
 
 export default function CheckoutPage() {
-  const { data: session } = useSession();
+  const { user, loading: authLoading } = useAuth();
   const router = useRouter();
   const { items, total, clearCart } = useCartStore();
 
@@ -29,7 +30,15 @@ export default function CheckoutPage() {
     return null;
   }
 
-  if (!session) {
+  if (authLoading) {
+    return (
+      <div className="max-w-4xl mx-auto px-4 py-16 text-center">
+        <p className="text-gray-500">Loading...</p>
+      </div>
+    );
+  }
+
+  if (!user) {
     return (
       <div className="max-w-4xl mx-auto px-4 py-16 text-center">
         <h1 className="text-3xl font-bold mb-4">Login Required</h1>
@@ -52,9 +61,8 @@ export default function CheckoutPage() {
     setError("");
 
     try {
-      const res = await fetch("/api/frontend/orders", {
+      const data = await apiFetch("/api/frontend/orders", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           items: items.map((i) => ({
             itemId: i.itemId,
@@ -66,30 +74,17 @@ export default function CheckoutPage() {
         }),
       });
 
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.error || "Failed to place order");
-      }
-
-      const data = await res.json();
       const orderId = data.data.id;
 
       if (formData.paymentMethod === "paystack" || formData.paymentMethod === "flutterwave") {
-        const payRes = await fetch("/api/payment/initialize", {
+        const payData = await apiFetch("/api/payment/initialize", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             orderId,
             gateway: formData.paymentMethod,
           }),
         });
 
-        if (!payRes.ok) {
-          const payData = await payRes.json();
-          throw new Error(payData.error || "Payment initialization failed");
-        }
-
-        const payData = await payRes.json();
         const redirectUrl = payData.authorization_url || payData.link;
         if (redirectUrl) {
           window.location.href = redirectUrl;

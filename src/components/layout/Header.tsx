@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useSession } from "next-auth/react";
+import { useAuth } from "@/contexts/AuthContext";
 import { useCartStore } from "@/lib/store/cart";
 import { useLanguage } from "@/lib/i18n/context";
 import { ShoppingCart, User, Menu, X } from "lucide-react";
@@ -9,7 +9,7 @@ import { useState } from "react";
 import LanguageSwitcher from "./LanguageSwitcher";
 
 export default function Header() {
-  const { data: session } = useSession();
+  const { user } = useAuth();
   const { itemCount } = useCartStore();
   const { t } = useLanguage();
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -49,7 +49,7 @@ export default function Header() {
               )}
             </Link>
 
-            {session ? (
+            {user ? (
               <Link href="/profile" className="p-2 hover:bg-gray-100 rounded-full">
                 <User className="w-5 h-5" />
               </Link>

@@ -1,0 +1,1188 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Enums matching original Laravel enum values
+enum Activity {
+  ENABLE  @map("5")
+  DISABLE @map("10")
+}
+
+enum AddressType {
+  HOME  @map("5")
+  WORK  @map("10")
+  OTHER @map("15")
+}
+
+enum AnalyticSection {
+  HEAD   @map("5")
+  BODY   @map("10")
+  FOOTER @map("15")
+}
+
+enum Ask {
+  YES @map("5")
+  NO  @map("10")
+}
+
+enum CurrencyPosition {
+  LEFT  @map("5")
+  RIGHT @map("10")
+}
+
+enum DiscountType {
+  FIXED      @map("5")
+  PERCENTAGE @map("10")
+}
+
+enum DisplayMode {
+  LTR @map("5")
+  RTL @map("10")
+}
+
+enum GatewayMode {
+  SANDBOX @map("5")
+  LIVE    @map("10")
+}
+
+enum InputType {
+  TEXT   @map("5")
+  SELECT @map("10")
+}
+
+enum IsAdvance {
+  YES @map("5")
+  NO  @map("10")
+}
+
+enum ItemType {
+  VEG     @map("5")
+  NON_VEG @map("10")
+}
+
+enum MenuType {
+  BACKEND  @map("1")
+  FRONTEND @map("2")
+}
+
+enum NotificationType {
+  SINGLE @map("5")
+  ALL    @map("10")
+}
+
+enum OrderStatus {
+  PENDING          @map("1")
+  ACCEPT           @map("4")
+  PREPARING        @map("7")
+  PREPARED         @map("8")
+  OUT_FOR_DELIVERY @map("10")
+  DELIVERED        @map("13")
+  CANCELED         @map("16")
+  REJECTED         @map("19")
+  RETURNED         @map("22")
+}
+
+enum OrderType {
+  DELIVERY @map("5")
+  TAKEAWAY @map("10")
+  POS      @map("15")
+}
+
+enum PaymentGateway {
+  CASH_ON_DELIVERY @map("1")
+  E_WALLET         @map("2")
+  PAYPAL           @map("3")
+  STRIPE           @map("4")
+  PAYSTACK         @map("5")
+  FLUTTERWAVE      @map("6")
+}
+
+enum PaymentStatus {
+  PAID   @map("5")
+  UNPAID @map("10")
+}
+
+enum PosPaymentMethod {
+  CASH         @map("1")
+  CARD         @map("2")
+  MOBILE_BANKING @map("3")
+  OTHER        @map("4")
+}
+
+enum UserRole {
+  ADMIN          @map("1")
+  CUSTOMER       @map("2")
+  DELIVERY_BOY   @map("3")
+  WAITER         @map("4")
+  CHEF           @map("5")
+  BRANCH_MANAGER @map("6")
+  POS_OPERATOR   @map("7")
+  STUFF          @map("8")
+}
+
+enum Source {
+  WEB @map("5")
+  APP @map("10")
+  POS @map("15")
+}
+
+enum Status {
+  ACTIVE   @map("5")
+  INACTIVE @map("10")
+}
+
+enum SwitchBox {
+  ON  @map("5")
+  OFF @map("10")
+}
+
+enum TaxType {
+  FIXED      @map("5")
+  PERCENTAGE @map("10")
+}
+
+// Models
+
+model User {
+  id                BigInt    @id @default(autoincrement())
+  name              String
+  email             String?
+  phone             String?
+  username          String
+  emailVerifiedAt   DateTime? @map("email_verified_at")
+  password          String
+  deviceToken       String?   @map("device_token")
+  webToken          String?   @map("web_token")
+  branchId          BigInt    @default(0) @map("branch_id")
+  countryCode       String?   @map("country_code")
+  isGuest           Int       @default(10) @map("is_guest")
+  status            Int       @default(5)
+  balance           Decimal   @default(0) @db.Decimal(19, 6)
+  creatorType       String?   @map("creator_type")
+  creatorId         BigInt?   @map("creator_id")
+  editorType        String?   @map("editor_type")
+  editorId          BigInt?   @map("editor_id")
+  rememberToken     String?   @map("remember_token")
+  deletedAt         DateTime? @map("deleted_at")
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
+
+  orders Order[]
+
+  // Indexes for production performance
+  @@index([email])
+  @@index([phone])
+  @@index([username])
+  @@index([branchId])
+  @@index([status])
+  @@index([isGuest])
+  @@map("users")
+}
+
+model Branch {
+  id          BigInt   @id @default(autoincrement())
+  name        String
+  email       String?
+  phone       String?
+  latitude    String?
+  longitude   String?
+  city        String
+  state       String
+  zipCode     String   @map("zip_code")
+  address     String   @db.Text
+  zone        String?  @db.Text
+  status      Int      @default(5)
+  creatorType String?  @map("creator_type")
+  creatorId   BigInt?  @map("creator_id")
+  editorType  String?  @map("editor_type")
+  editorId    BigInt?  @map("editor_id")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  orders          Order[]
+  orderItems      OrderItem[]
+  whatsappSetup   WhatsappOrderSetup[]
+
+  @@index([status])
+  @@index([city])
+  @@map("branches")
+}
+
+model ItemCategory {
+  id          BigInt   @id @default(autoincrement())
+  name        String
+  slug        String   @unique
+  description String?  @db.Text
+  status      Int      @default(5)
+  sort        BigInt   @default(1)
+  creatorType String?  @map("creator_type")
+  creatorId   BigInt?  @map("creator_id")
+  editorType  String?  @map("editor_type")
+  editorId    BigInt?  @map("editor_id")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  items Item[]
+
+  @@index([slug])
+  @@index([status])
+  @@index([sort])
+  @@map("item_categories")
+}
+
+model Item {
+  id             BigInt    @id @default(autoincrement())
+  itemCategoryId BigInt    @map("item_category_id")
+  taxId          BigInt?   @map("tax_id")
+  name           String
+  slug           String    @unique
+  caution        String?   @db.Text
+  description    String?   @db.Text
+  price          Decimal   @default(0) @db.Decimal(19, 6)
+  status         Int       @default(5)
+  itemType       Int       @default(5) @map("item_type")
+  order          BigInt    @default(1)
+  isFeatured     Int       @default(5) @map("is_featured")
+  creatorType    String?   @map("creator_type")
+  creatorId      BigInt?   @map("creator_id")
+  editorType     String?   @map("editor_type")
+  editorId       BigInt?   @map("editor_id")
+  deletedAt      DateTime? @map("deleted_at")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+
+  category    ItemCategory    @relation(fields: [itemCategoryId], references: [id])
+  tax         Tax?            @relation(fields: [taxId], references: [id])
+  variations  ItemVariation[]
+  extras      ItemExtra[]
+  addons      ItemAddon[]
+  addonItems  ItemAddon[]     @relation("AddonItem")
+  offerItems  OfferItem[]
+  orderItems  OrderItem[]
+
+  @@index([itemCategoryId])
+  @@index([taxId])
+  @@index([slug])
+  @@index([status])
+  @@index([isFeatured])
+  @@index([itemType])
+  @@index([itemCategoryId, status])
+  @@map("items")
+}
+
+model ItemVariation {
+  id              BigInt    @id @default(autoincrement())
+  itemId          BigInt    @map("item_id")
+  itemAttributeId BigInt    @map("item_attribute_id")
+  name            String
+  price           Decimal   @default(0) @db.Decimal(19, 6)
+  caution         String?   @db.Text
+  status          Int       @default(5)
+  creatorType     String?   @map("creator_type")
+  creatorId       BigInt?   @map("creator_id")
+  editorType      String?   @map("editor_type")
+  editorId        BigInt?   @map("editor_id")
+  deletedAt       DateTime? @map("deleted_at")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  item      Item           @relation(fields: [itemId], references: [id])
+  attribute ItemAttribute  @relation(fields: [itemAttributeId], references: [id])
+
+  @@index([itemId])
+  @@index([itemAttributeId])
+  @@index([status])
+  @@map("item_variations")
+}
+
+model ItemAttribute {
+  id          BigInt   @id @default(autoincrement())
+  name        String
+  status      Int      @default(5)
+  creatorType String?  @map("creator_type")
+  creatorId   BigInt?  @map("creator_id")
+  editorType  String?  @map("editor_type")
+  editorId    BigInt?  @map("editor_id")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  variations ItemVariation[]
+
+  @@index([status])
+  @@map("item_attributes")
+}
+
+model ItemExtra {
+  id          BigInt    @id @default(autoincrement())
+  itemId      BigInt    @map("item_id")
+  name        String
+  price       Decimal   @db.Decimal(19, 6)
+  status      Int       @default(5)
+  creatorType String?   @map("creator_type")
+  creatorId   BigInt?   @map("creator_id")
+  editorType  String?   @map("editor_type")
+  editorId    BigInt?   @map("editor_id")
+  deletedAt   DateTime? @map("deleted_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  item Item @relation(fields: [itemId], references: [id])
+
+  @@index([itemId])
+  @@index([status])
+  @@map("item_extras")
+}
+
+model ItemAddon {
+  id               BigInt    @id @default(autoincrement())
+  itemId           BigInt    @map("item_id")
+  addonItemId      BigInt    @map("addon_item_id")
+  addonItemVariation Json?   @map("addon_item_variation")
+  creatorType      String?   @map("creator_type")
+  creatorId        BigInt?   @map("creator_id")
+  editorType       String?   @map("editor_type")
+  editorId         BigInt?   @map("editor_id")
+  deletedAt        DateTime? @map("deleted_at")
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @updatedAt @map("updated_at")
+
+  item      Item @relation(fields: [itemId], references: [id])
+  addonItem Item @relation("AddonItem", fields: [addonItemId], references: [id])
+
+  @@index([itemId])
+  @@index([addonItemId])
+  @@map("item_addons")
+}
+
+model Tax {
+  id          BigInt   @id @default(autoincrement())
+  name        String
+  code        String
+  taxRate     Decimal  @map("tax_rate") @db.Decimal(19, 6)
+  type        Int
+  status      Int      @default(5)
+  creatorType String?  @map("creator_type")
+  creatorId   BigInt?  @map("creator_id")
+  editorType  String?  @map("editor_type")
+  editorId    BigInt?  @map("editor_id")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  items Item[]
+
+  @@index([code])
+  @@index([status])
+  @@map("taxes")
+}
+
+model Order {
+  id                 BigInt    @id @default(autoincrement())
+  orderSerialNo      String?   @map("order_serial_no")
+  token              String?
+  userId             BigInt    @map("user_id")
+  branchId           BigInt    @map("branch_id")
+  subtotal           Decimal   @db.Decimal(19, 6)
+  discount           Decimal   @default(0) @db.Decimal(19, 6)
+  deliveryCharge     Decimal   @default(0) @map("delivery_charge") @db.Decimal(19, 6)
+  totalTax           Decimal?  @map("total_tax") @db.Decimal(19, 6)
+  total              Decimal   @db.Decimal(19, 6)
+  orderType          Int       @default(5) @map("order_type")
+  orderDatetime      DateTime  @default(now()) @map("order_datetime")
+  deliveryTime       String?   @map("delivery_time")
+  preparationTime    Int       @default(0) @map("preparation_time")
+  isAdvanceOrder     Int       @default(5) @map("is_advance_order")
+  paymentMethod      BigInt    @default(1) @map("payment_method")
+  posPaymentMethod   Int?      @map("pos_payment_method")
+  posPaymentNote     String?   @map("pos_payment_note") @db.VarChar(200)
+  posReceivedAmount  Decimal?  @default(0) @map("pos_received_amount") @db.Decimal(19, 6)
+  paymentStatus      Int       @default(10) @map("payment_status")
+  status             Int
+  deliveryBoyId      BigInt?   @map("delivery_boy_id")
+  reason             String?   @db.Text
+  source             String?
+  creatorType        String?   @map("creator_type")
+  creatorId          BigInt?   @map("creator_id")
+  editorType         String?   @map("editor_type")
+  editorId           BigInt?   @map("editor_id")
+  createdAt          DateTime  @default(now()) @map("created_at")
+  updatedAt          DateTime  @updatedAt @map("updated_at")
+
+  user        User            @relation(fields: [userId], references: [id])
+  branch      Branch          @relation(fields: [branchId], references: [id])
+  orderItems  OrderItem[]
+  address     OrderAddress?
+  coupon      OrderCoupon?
+  transaction Transaction?
+
+  @@index([userId])
+  @@index([branchId])
+  @@index([orderSerialNo])
+  @@index([token])
+  @@index([status])
+  @@index([paymentStatus])
+  @@index([orderType])
+  @@index([deliveryBoyId])
+  @@index([createdAt])
+  @@index([userId, status])
+  @@index([branchId, status])
+  @@map("orders")
+}
+
+model OrderItem {
+  id                  BigInt   @id @default(autoincrement())
+  orderId             BigInt   @map("order_id")
+  branchId            BigInt   @map("branch_id")
+  itemId              BigInt   @map("item_id")
+  quantity            Int      @default(1)
+  discount            Decimal  @db.Decimal(19, 6)
+  taxName             String?  @map("tax_name")
+  taxRate             Decimal? @map("tax_rate") @db.Decimal(19, 6)
+  taxType             Int?     @map("tax_type")
+  taxAmount           Decimal? @map("tax_amount") @db.Decimal(19, 6)
+  price               Decimal  @db.Decimal(19, 6)
+  itemVariations      String?  @db.Text @map("item_variations")
+  itemExtras          String?  @db.Text @map("item_extras")
+  itemVariationTotal  Decimal? @default(0) @map("item_variation_total") @db.Decimal(19, 6)
+  itemExtraTotal      Decimal? @default(0) @map("item_extra_total") @db.Decimal(19, 6)
+  totalPrice          Decimal? @default(0) @map("total_price") @db.Decimal(19, 6)
+  instruction         String?  @db.Text
+  creatorType         String?  @map("creator_type")
+  creatorId           BigInt?  @map("creator_id")
+  editorType          String?  @map("editor_type")
+  editorId            BigInt?  @map("editor_id")
+  createdAt           DateTime @default(now()) @map("created_at")
+  updatedAt           DateTime @updatedAt @map("updated_at")
+
+  order  Order  @relation(fields: [orderId], references: [id])
+  branch Branch @relation(fields: [branchId], references: [id])
+  item   Item   @relation(fields: [itemId], references: [id])
+
+  @@index([orderId])
+  @@index([branchId])
+  @@index([itemId])
+  @@map("order_items")
+}
+
+model OrderAddress {
+  id        BigInt   @id @default(autoincrement())
+  orderId   BigInt   @unique @map("order_id")
+  userId    BigInt   @map("user_id")
+  label     String
+  address   String
+  apartment String?
+  latitude  String
+  longitude String
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  order Order @relation(fields: [orderId], references: [id])
+
+  @@index([orderId])
+  @@index([userId])
+  @@map("order_addresses")
+}
+
+model OrderCoupon {
+  id        BigInt   @id @default(autoincrement())
+  orderId   BigInt   @unique @map("order_id")
+  couponId  BigInt   @map("coupon_id")
+  userId    BigInt   @map("user_id")
+  discount  Decimal  @db.Decimal(19, 6)
+  creatorType String? @map("creator_type")
+  creatorId   BigInt? @map("creator_id")
+  editorType  String? @map("editor_type")
+  editorId    BigInt? @map("editor_id")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  order  Order  @relation(fields: [orderId], references: [id])
+  coupon Coupon @relation(fields: [couponId], references: [id])
+
+  @@index([orderId])
+  @@index([couponId])
+  @@index([userId])
+  @@map("order_coupons")
+}
+
+model Coupon {
+  id              BigInt    @id @default(autoincrement())
+  name            String
+  description     String?   @db.Text
+  code            String    @unique
+  discount        Decimal   @db.Decimal(19, 6)
+  discountType    Int       @map("discount_type")
+  startDate       DateTime? @map("start_date")
+  endDate         DateTime? @map("end_date")
+  minimumOrder    Decimal   @default(0) @map("minimum_order") @db.Decimal(19, 6)
+  maximumDiscount Decimal   @default(0) @map("maximum_discount") @db.Decimal(19, 6)
+  limitPerUser    BigInt    @default(0) @map("limit_per_user")
+  creatorType     String?   @map("creator_type")
+  creatorId       BigInt?   @map("creator_id")
+  editorType      String?   @map("editor_type")
+  editorId        BigInt?   @map("editor_id")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  orderCoupons OrderCoupon[]
+
+  @@index([code])
+  @@map("coupons")
+}
+
+model Offer {
+  id          BigInt   @id @default(autoincrement())
+  name        String
+  slug        String   @unique
+  amount      Decimal  @db.Decimal(19, 6)
+  status      Int      @default(5)
+  startDate   DateTime @map("start_date")
+  endDate     DateTime @map("end_date")
+  creatorType String?  @map("creator_type")
+  creatorId   BigInt?  @map("creator_id")
+  editorType  String?  @map("editor_type")
+  editorId    BigInt?  @map("editor_id")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  offerItems OfferItem[]
+
+  @@index([slug])
+  @@index([status])
+  @@index([startDate, endDate])
+  @@map("offers")
+}
+
+model OfferItem {
+  id        BigInt   @id @default(autoincrement())
+  offerId   BigInt   @map("offer_id")
+  itemId    BigInt   @map("item_id")
+  creatorType String? @map("creator_type")
+  creatorId   BigInt? @map("creator_id")
+  editorType  String? @map("editor_type")
+  editorId    BigInt? @map("editor_id")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  offer Offer @relation(fields: [offerId], references: [id])
+  item  Item  @relation(fields: [itemId], references: [id])
+
+  @@index([offerId])
+  @@index([itemId])
+  @@map("offer_items")
+}
+
+model Address {
+  id          BigInt   @id @default(autoincrement())
+  userId      BigInt   @map("user_id")
+  label       String
+  address     String
+  apartment   String?
+  latitude    String
+  longitude   String
+  creatorType String?  @map("creator_type")
+  creatorId   BigInt?  @map("creator_id")
+  editorType  String?  @map("editor_type")
+  editorId    BigInt?  @map("editor_id")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@index([userId])
+  @@map("addresses")
+}
+
+model Slider {
+  id          BigInt   @id @default(autoincrement())
+  title       String   @db.Text
+  description String?  @db.Text
+  status      Int      @default(5)
+  creatorType String?  @map("creator_type")
+  creatorId   BigInt?  @map("creator_id")
+  editorType  String?  @map("editor_type")
+  editorId    BigInt?  @map("editor_id")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@index([status])
+  @@map("sliders")
+}
+
+model Currency {
+  id            BigInt   @id @default(autoincrement())
+  name          String
+  symbol        String
+  code          String   @unique
+  isCryptocurrency Int
+  exchangeRate  BigInt?  @map("exchange_rate")
+  creatorType   String?  @map("creator_type")
+  creatorId     BigInt?  @map("creator_id")
+  editorType    String?  @map("editor_type")
+  editorId      BigInt?  @map("editor_id")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  @@index([code])
+  @@map("currencies")
+}
+
+model Language {
+  id          BigInt   @id @default(autoincrement())
+  name        String
+  code        String   @unique
+  displayMode Int      @default(5) @map("display_mode")
+  status      Int      @default(5)
+  creatorType String?  @map("creator_type")
+  creatorId   BigInt?  @map("creator_id")
+  editorType  String?  @map("editor_type")
+  editorId    BigInt?  @map("editor_id")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@index([code])
+  @@index([status])
+  @@map("languages")
+}
+
+model TimeSlot {
+  id          BigInt   @id @default(autoincrement())
+  openingTime String   @map("opening_time")
+  closingTime String   @map("closing_time")
+  day         Int
+  creatorType String?  @map("creator_type")
+  creatorId   BigInt?  @map("creator_id")
+  editorType  String?  @map("editor_type")
+  editorId    BigInt?  @map("editor_id")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@index([day])
+  @@map("time_slots")
+}
+
+model Page {
+  id             BigInt   @id @default(autoincrement())
+  title          String
+  slug           String   @unique
+  description    String   @db.Text
+  menuSectionId  BigInt   @map("menu_section_id")
+  templateId     BigInt?  @map("template_id")
+  status         Int      @default(5)
+  creatorType    String?  @map("creator_type")
+  creatorId      BigInt?  @map("creator_id")
+  editorType     String?  @map("editor_type")
+  editorId       BigInt?  @map("editor_id")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  @@index([slug])
+  @@index([status])
+  @@map("pages")
+}
+
+model MenuSection {
+  id          BigInt   @id @default(autoincrement())
+  name        String
+  creatorType String?  @map("creator_type")
+  creatorId   BigInt?  @map("creator_id")
+  editorType  String?  @map("editor_type")
+  editorId    BigInt?  @map("editor_id")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@map("menu_sections")
+}
+
+model MenuTemplate {
+  id          BigInt   @id @default(autoincrement())
+  name        String
+  creatorType String?  @map("creator_type")
+  creatorId   BigInt?  @map("creator_id")
+  editorType  String?  @map("editor_type")
+  editorId    BigInt?  @map("editor_id")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@map("menu_templates")
+}
+
+model Menu {
+  id        BigInt   @id @default(autoincrement())
+  name      String
+  language  String?
+  url       String
+  icon      String
+  status    Int
+  parent    Int      @default(0)
+  type      Int      @default(1)
+  priority  Int
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([status])
+  @@index([type])
+  @@map("menus")
+}
+
+model PaymentGatewayConfig {
+  id          BigInt   @id @default(autoincrement())
+  name        String
+  slug        String   @unique
+  misc        String?  @db.Text
+  status      Int      @default(5)
+  creatorType String?  @map("creator_type")
+  creatorId   BigInt?  @map("creator_id")
+  editorType  String?  @map("editor_type")
+  editorId    BigInt?  @map("editor_id")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@index([slug])
+  @@index([status])
+  @@map("payment_gateways")
+}
+
+model SmsGateway {
+  id          BigInt   @id @default(autoincrement())
+  name        String
+  slug        String   @unique
+  misc        String?  @db.Text
+  status      Int      @default(5)
+  creatorType String?  @map("creator_type")
+  creatorId   BigInt?  @map("creator_id")
+  editorType  String?  @map("editor_type")
+  editorId    BigInt?  @map("editor_id")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@index([slug])
+  @@index([status])
+  @@map("sms_gateways")
+}
+
+model GatewayOption {
+  id          BigInt   @id @default(autoincrement())
+  modelId     BigInt   @map("model_id")
+  modelType   String   @map("model_type")
+  option      String
+  value       String?  @db.Text
+  type        Int
+  activities  String?  @db.Text
+  creatorType String?  @map("creator_type")
+  creatorId   BigInt?  @map("creator_id")
+  editorType  String?  @map("editor_type")
+  editorId    BigInt?  @map("editor_id")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@index([modelId, modelType])
+  @@map("gateway_options")
+}
+
+model SocialLogin {
+  id          BigInt   @id @default(autoincrement())
+  name        String
+  slug        String   @unique
+  misc        String?  @db.Text
+  status      Int      @default(5)
+  creatorType String?  @map("creator_type")
+  creatorId   BigInt?  @map("creator_id")
+  editorType  String?  @map("editor_type")
+  editorId    BigInt?  @map("editor_id")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@index([slug])
+  @@index([status])
+  @@map("social_logins")
+}
+
+model Transaction {
+  id            BigInt   @id @default(autoincrement())
+  sign          String   @default("+")
+  orderId       BigInt   @unique @map("order_id")
+  transactionNo String   @map("transaction_no")
+  amount        Decimal  @default(0) @db.Decimal(19, 6)
+  paymentMethod String   @map("payment_method")
+  type          String   @default("payment")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  order Order? @relation(fields: [orderId], references: [id])
+
+  @@index([orderId])
+  @@index([transactionNo])
+  @@map("transactions")
+}
+
+model Subscriber {
+  id        BigInt   @id @default(autoincrement())
+  email     String   @unique
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([email])
+  @@map("subscribers")
+}
+
+model Message {
+  id        BigInt   @id @default(autoincrement())
+  branchId  BigInt   @map("branch_id")
+  userId    BigInt   @map("user_id")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  histories MessageHistory[]
+
+  @@index([branchId])
+  @@index([userId])
+  @@map("messages")
+}
+
+model MessageHistory {
+  id        BigInt   @id @default(autoincrement())
+  messageId BigInt   @map("message_id")
+  userId    BigInt   @map("user_id")
+  text      String?  @db.Text
+  isRead    Int      @map("is_read")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  message Message @relation(fields: [messageId], references: [id])
+
+  @@index([messageId])
+  @@index([userId])
+  @@index([isRead])
+  @@map("message_histories")
+}
+
+model Notification {
+  id        BigInt   @id @default(autoincrement())
+  modelType String   @map("model_type")
+  modelId   BigInt   @map("model_id")
+  data      String?  @db.Text
+  readAt    DateTime? @map("read_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([modelType, modelId])
+  @@index([readAt])
+  @@map("notifications")
+}
+
+model NotificationAlert {
+  id                     BigInt   @id @default(autoincrement())
+  name                   String
+  language               String
+  mailMessage            String?  @map("mail_message")
+  smsMessage             String?  @map("sms_message")
+  pushNotificationMessage String? @map("push_notification_message")
+  mail                   Int?
+  sms                    Int?
+  pushNotification       Int?     @map("push_notification")
+  createdAt              DateTime @default(now()) @map("created_at")
+  updatedAt              DateTime @updatedAt @map("updated_at")
+
+  @@map("notification_alerts")
+}
+
+model PushNotification {
+  id          BigInt   @id @default(autoincrement())
+  title       String
+  description String   @db.Text
+  roleId      BigInt?  @map("role_id")
+  userId      BigInt?  @map("user_id")
+  branchId    BigInt   @default(0) @map("branch_id")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@index([roleId])
+  @@index([userId])
+  @@index([branchId])
+  @@map("push_notifications")
+}
+
+model Otp {
+  phone     String   @id
+  code      String
+  token     String
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([phone])
+  @@map("otps")
+}
+
+model CapturePaymentNotification {
+  orderId   BigInt   @map("order_id")
+  token     String
+  createdAt DateTime? @default(now()) @map("created_at")
+
+  @@id([orderId])
+  @@map("capture_payment_notifications")
+}
+
+model Analytic {
+  id          BigInt   @id @default(autoincrement())
+  name        String
+  status      Int      @default(5)
+  creatorType String?  @map("creator_type")
+  creatorId   BigInt?  @map("creator_id")
+  editorType  String?  @map("editor_type")
+  editorId    BigInt?  @map("editor_id")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  sections AnalyticSectionConfig[]
+
+  @@index([status])
+  @@map("analytics")
+}
+
+model AnalyticSectionConfig {
+  id          BigInt   @id @default(autoincrement())
+  analyticId  BigInt   @map("analytic_id")
+  name        String
+  data        String   @db.Text
+  section     Int      @default(5)
+  creatorType String?  @map("creator_type")
+  creatorId   BigInt?  @map("creator_id")
+  editorType  String?  @map("editor_type")
+  editorId    BigInt?  @map("editor_id")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  analytic Analytic @relation(fields: [analyticId], references: [id])
+
+  @@index([analyticId])
+  @@map("analytic_sections")
+}
+
+model Permission {
+  id        BigInt   @id @default(autoincrement())
+  title     String?
+  name      String   @unique
+  guardName String   @map("guard_name")
+  url       String?
+  parent    BigInt   @default(0)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([guardName])
+  @@map("permissions")
+}
+
+model Role {
+  id        BigInt          @id @default(autoincrement())
+  name      String
+  guardName String          @map("guard_name")
+  createdAt DateTime        @default(now()) @map("created_at")
+  updatedAt DateTime        @updatedAt @map("updated_at")
+
+  modelHasRoles ModelHasRole[]
+
+  @@unique([name, guardName])
+  @@index([guardName])
+  @@map("roles")
+}
+
+model ModelHasRole {
+  roleId        BigInt   @map("role_id")
+  modelType     String   @map("model_type")
+  modelMorphKey BigInt   @map("model_morph_key")
+
+  role Role @relation(fields: [roleId], references: [id])
+
+  @@id([roleId, modelType, modelMorphKey])
+  @@index([modelType, modelMorphKey])
+  @@map("model_has_roles")
+}
+
+model Setting {
+  id             BigInt   @id @default(autoincrement())
+  group          String?
+  key            String
+  payload        Json
+  settingableType String? @map("settingable_type")
+  settingableId  BigInt?  @map("settingable_id")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  @@index([group])
+  @@index([key])
+  @@index([settingableType, settingableId])
+  @@map("settings")
+}
+
+model DefaultAccess {
+  id        BigInt   @id @default(autoincrement())
+  name      String
+  userId    BigInt   @map("user_id")
+  defaultId BigInt   @map("default_id")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([userId])
+  @@map("default_access")
+}
+
+model PWA {
+  id        BigInt   @id @default(autoincrement())
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("pwa")
+}
+
+model WhatsappOrderSetup {
+  id          BigInt   @id @default(autoincrement())
+  branchId    BigInt   @map("branch_id")
+  phone       String
+  status      Int      @default(5)
+  creatorType String?  @map("creator_type")
+  creatorId   BigInt?  @map("creator_id")
+  editorType  String?  @map("editor_type")
+  editorId    BigInt?  @map("editor_id")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  branch Branch @relation(fields: [branchId], references: [id])
+
+  @@index([branchId])
+  @@index([status])
+  @@map("whatsapp_order_setup")
+}
+
+model Addon {
+  id          BigInt   @id @default(autoincrement())
+  title       String
+  slug        String   @unique
+  description String?  @db.Text
+  version     String?
+  date        DateTime?
+  author      String?
+  files       Json?
+  itemId      String   @map("item_id")
+  licenseCode String   @map("license_code")
+  status      Int      @default(5)
+  creatorType String?  @map("creator_type")
+  creatorId   BigInt?  @map("creator_id")
+  editorType  String?  @map("editor_type")
+  editorId    BigInt?  @map("editor_id")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@index([slug])
+  @@index([status])
+  @@map("addons")
+}
+
+model Media {
+  id                 BigInt   @id @default(autoincrement())
+  modelType          String   @map("model_type")
+  modelId            BigInt   @map("model_id")
+  uuid               String?  @unique
+  collectionName     String   @map("collection_name")
+  name               String
+  fileName           String   @map("file_name")
+  mimeType           String?  @map("mime_type")
+  disk               String
+  conversionsDisk    String?  @map("conversions_disk")
+  size               BigInt
+  manipulations      Json
+  customProperties   Json     @map("custom_properties")
+  generatedConversions Json  @map("generated_conversions")
+  responsiveImages   Json     @map("responsive_images")
+  orderColumn        Int?     @map("order_column")
+  createdAt          DateTime? @map("created_at")
+  updatedAt          DateTime? @map("updated_at")
+
+  @@index([modelType, modelId])
+  @@index([collectionName])
+  @@index([orderColumn])
+  @@map("media")
+}
+
+model PasswordReset {
+  email     String
+  token     String
+  createdAt DateTime? @map("created_at")
+
+  @@id([email])
+  @@index([email])
+  @@map("password_resets")
+}
+
+model PersonalAccessToken {
+  id             BigInt    @id @default(autoincrement())
+  tokenableType  String    @map("tokenable_type")
+  tokenableId    BigInt    @map("tokenable_id")
+  name           String
+  token          String    @unique
+  abilities      String?   @db.Text
+  lastUsedAt     DateTime? @map("last_used_at")
+  expiresAt      DateTime? @map("expires_at")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+
+  @@index([tokenableType, tokenableId])
+  @@map("personal_access_tokens")
+}
+
+model Cache {
+  key        String @id @map("key")
+  value      String @db.Text
+  expiration Int
+
+  @@map("cache")
+}
+
+model CacheLock {
+  key        String @id @map("key")
+  owner      String
+  expiration Int
+
+  @@map("cache_locks")
+}
+
+model Job {
+  id          BigInt  @id @default(autoincrement())
+  queue       String
+  payload     String  @db.Text
+  attempts    Int
+  reservedAt  Int?    @map("reserved_at")
+  availableAt Int     @map("available_at")
+  createdAt   Int     @map("created_at")
+
+  @@index([queue])
+  @@map("jobs")
+}
+
+model JobBatch {
+  id          String  @id @map("id")
+  name        String
+  totalJobs   Int     @map("total_jobs")
+  pendingJobs Int     @map("pending_jobs")
+  failedJobs  Int     @map("failed_jobs")
+  failedJobIds String @map("failed_job_ids")
+  options     String? @db.Text
+  cancelledAt Int?    @map("cancelled_at")
+  createdAt   Int     @map("created_at")
+  finishedAt  Int?    @map("finished_at")
+
+  @@map("job_batches")
+}
+
+model FailedJob {
+  id        BigInt   @id @default(autoincrement())
+  uuid      String   @unique
+  connection String  @db.Text
+  queue     String   @db.Text
+  payload   String   @db.Text
+  exception String   @db.Text
+  failedAt  DateTime @default(now()) @map("failed_at")
+
+  @@map("failed_jobs")
+}

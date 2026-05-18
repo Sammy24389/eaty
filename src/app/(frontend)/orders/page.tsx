@@ -1,26 +1,35 @@
-import { auth } from "@/lib/auth";
+import { cookies } from "next/headers";
+import { jwtVerify } from "jose";
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { apiFetch } from "@/lib/api-client";
 
-async function getOrders(userId: string) {
+async function getUserFromToken() {
+  const cookieStore = await cookies();
+  const token = cookieStore.get("auth_token")?.value;
+
+  if (!token) return null;
+
   try {
-    const res = await fetch(
-      `${process.env.NEXT_PUBLIC_URL || "http://localhost:3000"}/api/frontend/orders?userId=${userId}`,
-      { next: { revalidate: 0 } }
-    );
-    if (!res.ok) return [];
-    const data = await res.json();
-    return data.data || [];
+    const secret = new TextEncoder().encode(process.env.JWT_SECRET || "fallback-secret");
+    const { payload } = await jwtVerify(token, secret);
+    return { id: payload.id as string, roleType: payload.roleType as string };
   } catch {
-    return [];
+    return null;
   }
 }
 
 export default async function OrdersPage() {
-  const session = await auth();
-  if (!session?.user?.id) redirect("/login");
+  const user = await getUserFromToken();
+  if (!user?.id) redirect("/login");
 
-  const orders = await getOrders(session.user.id);
+  let orders: any[] = [];
+  try {
+    const data = await apiFetch(`/api/frontend/orders?userId=${user.id}`);
+    orders = data.data || [];
+  } catch {
+    orders = [];
+  }
 
   const statusColors: Record<string, string> = {
     pending: "bg-yellow-100 text-yellow-800",

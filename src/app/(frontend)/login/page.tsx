@@ -1,25 +1,34 @@
-import { signIn } from "@/lib/auth";
-import { redirect } from "next/navigation";
+"use client";
 
-export default async function LoginPage(props: {
-  searchParams: Promise<{ callbackUrl?: string; error?: string; registered?: string }>;
-}) {
-  const searchParams = await props.searchParams;
+import { useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useAuth } from "@/contexts/AuthContext";
 
-  async function handleSubmit(formData: FormData) {
-    "use server";
+export default function LoginPage() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const { login } = useAuth();
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
 
-    const result = await signIn("credentials", {
-      email: formData.get("email") as string,
-      password: formData.get("password") as string,
-      redirect: false,
-    });
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setError(null);
+    setLoading(true);
 
-    if (result?.error) {
-      redirect(`/login?error=${encodeURIComponent(result.error)}${searchParams.callbackUrl ? `&callbackUrl=${searchParams.callbackUrl}` : ""}`);
+    const formData = new FormData(e.currentTarget);
+    const email = formData.get("email") as string;
+    const password = formData.get("password") as string;
+
+    try {
+      await login(email, password);
+      const callbackUrl = searchParams.get("callbackUrl") || "/";
+      router.push(callbackUrl);
+    } catch (err: any) {
+      setError(err.message || "Invalid email or password");
+    } finally {
+      setLoading(false);
     }
-
-    redirect(searchParams.callbackUrl || "/");
   }
 
   return (
@@ -35,21 +44,17 @@ export default async function LoginPage(props: {
           </p>
         </div>
 
-        {searchParams.registered && (
+        {searchParams.get("registered") && (
           <div className="rounded-md bg-green-50 p-3 text-sm text-green-700">
             Account created! Sign in below.
           </div>
         )}
 
-        {searchParams.error && (
-          <div className="rounded-md bg-red-50 p-3 text-sm text-red-700">
-            {searchParams.error === "CredentialsSignin"
-              ? "Invalid email or password"
-              : searchParams.error}
-          </div>
+        {error && (
+          <div className="rounded-md bg-red-50 p-3 text-sm text-red-700">{error}</div>
         )}
 
-        <form action={handleSubmit} className="mt-8 space-y-6">
+        <form onSubmit={handleSubmit} className="mt-8 space-y-6">
           <div className="space-y-4">
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-gray-700">
@@ -88,9 +93,10 @@ export default async function LoginPage(props: {
 
           <button
             type="submit"
-            className="flex w-full justify-center rounded-md bg-green-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-green-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600"
+            disabled={loading}
+            className="flex w-full justify-center rounded-md bg-green-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-green-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600 disabled:opacity-50"
           >
-            Sign in
+            {loading ? "Signing in..." : "Sign in"}
           </button>
         </form>
       </div>
