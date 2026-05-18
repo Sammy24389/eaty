@@ -19,151 +19,140 @@
                            │ Prisma Client
                            ▼
 ┌─────────────────────────────────────────────────────────────┐
-│                   PostgreSQL (Render)                        │
-│  50+ tables | Shared schema | Production-ready               │
+│                   PostgreSQL (Neon)                          │
+│  Serverless | Auto-scaling | Never expires | Free tier       │
+│  URL: postgresql://...                                       │
 └─────────────────────────────────────────────────────────────┘
 ```
 
 ## Prerequisites
 
-1. **GitHub Repository** - Push your code to GitHub
+1. **GitHub Repository** - Pushed to `https://github.com/Sammy24389/eaty`
 2. **Vercel Account** - https://vercel.com/signup
 3. **Render Account** - https://render.com/register
-4. **Payment Gateway Accounts** (optional) - Paystack/Flutterwave
+4. **Neon Account** - https://neon.tech/signup
+5. **Payment Gateway Accounts** (optional) - Paystack/Flutterwave
 
 ---
 
-## Step 1: Deploy Backend to Render
+## Step 1: Create Neon Database
 
-### Option A: Using Render Blueprint (Recommended)
+1. Go to https://neon.tech and sign up (GitHub login works)
+2. Click **New Project**
+3. **Project Name**: `eaty`
+4. **PostgreSQL Version**: `17` (or latest)
+5. **Region**: Choose closest to your Render region (e.g., AWS us-east-1 / Virginia)
+6. Click **Create Project**
+7. You'll land on the dashboard. Copy the **Connection String** under "Connection Details"
+   - Select **Prisma** from the dropdown if available
+   - Format: `postgresql://user:password@ep-xxx.region.aws.neon.tech/dbname?sslmode=require`
+8. **Save this string** — you'll paste it into Render as `DATABASE_URL`
 
-1. Go to [Render Dashboard](https://dashboard.render.com)
-2. Click **New +** → **Blueprint**
-3. Connect your GitHub repository
-4. Select the `render.yaml` file
-5. Render will auto-provision:
-   - Backend web service
-   - PostgreSQL database
-   - Environment variables (JWT_SECRET auto-generated)
+---
 
-### Option B: Manual Setup
+## Step 2: Deploy Backend to Render
 
-1. **Create PostgreSQL Database:**
-   - Go to Render Dashboard → **New +** → **PostgreSQL**
-   - Name: `eaty-db`
-   - Region: Virginia (or closest to you)
-   - Plan: Free
-   - Copy the **Internal Connection String**
+1. Go to https://dashboard.render.com
+2. Click **New +** → **Web Service**
+3. **Connect Repository** → Select `Sammy24389/eaty`
+4. Configure:
+   - **Name**: `eaty-backend`
+   - **Region**: Same region as your Neon database (e.g., Virginia)
+   - **Branch**: `main`
+   - **Root Directory**: `backend`
+   - **Runtime**: `Node`
+   - **Build Command**: `npm install && npx prisma generate && npm run build`
+   - **Start Command**: `npm start`
+   - **Health Check Path**: `/health`
+   - **Plan**: Free
 
-2. **Create Web Service:**
-   - **New +** → **Web Service**
-   - Connect your GitHub repo
-   - Configure:
-     - **Name**: `eaty-backend`
-     - **Root Directory**: `backend`
-     - **Build Command**: `npm install && npx prisma generate && npm run build`
-     - **Start Command**: `npm start`
-     - **Health Check Path**: `/health`
-     - **Plan**: Free
+5. **Add Environment Variables:**
 
-3. **Add Environment Variables:**
-   | Variable | Value |
-   |----------|-------|
+   | Key | Value |
+   |-----|-------|
    | `NODE_ENV` | `production` |
    | `NODE_VERSION` | `20` |
-   | `DATABASE_URL` | (PostgreSQL connection string from step 1) |
-   | `JWT_SECRET` | (Generate: `openssl rand -hex 32`) |
+   | `DATABASE_URL` | (paste Neon connection string from Step 1) |
+   | `JWT_SECRET` | (generate: any random 64-char string) |
    | `JWT_EXPIRES_IN` | `7d` |
-   | `FRONTEND_URL` | (Your Vercel URL - set after Step 2) |
-   | `PAYSTACK_SECRET_KEY` | (Optional - your Paystack secret) |
-   | `FLUTTERWAVE_SECRET_KEY` | (Optional - your Flutterwave secret) |
+   | `FRONTEND_URL` | `http://localhost:3000` (update after Vercel deploy) |
 
-4. **Deploy** - Click "Create Web Service"
+6. Click **Create Web Service**
 
-5. **Run Database Migrations & Seed:**
-   - Go to your backend service in Render Dashboard
-   - Click **Shell** tab
-   - Run these commands:
+7. **Wait for build** (~2-3 minutes). Watch the logs.
+
+8. **Run Database Migrations:**
+   - Go to your service dashboard → **Shell** tab
+   - Run:
      ```bash
      npx prisma migrate deploy
-     npm run seed
      ```
 
-6. **Note the Backend URL** (e.g., `https://eaty-backend.onrender.com`)
+9. **Seed the Database:**
+   - In the same Shell, run:
+     ```bash
+     npx tsx prisma/seed.ts
+     ```
+   - You should see:
+     ```
+     Created admin user: admin@foodappi.com
+     Created default branch: Main Branch
+     Seed complete!
+     ```
+
+10. **Verify:**
+    - Open: `https://eaty-backend.onrender.com/health`
+    - Should return: `{"status":"ok","timestamp":"..."}`
+
+11. **Note your backend URL** (e.g., `https://eaty-backend.onrender.com`)
 
 ---
 
-## Step 2: Deploy Frontend to Vercel
+## Step 3: Deploy Frontend to Vercel
 
-1. Go to [Vercel](https://vercel.com)
+1. Go to https://vercel.com
 2. Click **Add New...** → **Project**
-3. Import your GitHub repository
+3. Import `Sammy24389/eaty`
 4. Configure:
    - **Framework Preset**: Next.js
-   - **Root Directory**: `foodappi-next` (or your frontend folder)
+   - **Root Directory**: `.` (root of repo)
    - **Build Command**: `npm install && npm run build`
    - **Output Directory**: `.next`
 
 5. **Add Environment Variables:**
-   | Variable | Value |
-   |----------|-------|
-   | `NEXT_PUBLIC_API_URL` | `https://eaty-backend.onrender.com` (from Step 1) |
-   | `JWT_SECRET` | (Same value as backend JWT_SECRET) |
 
-6. **Deploy** - Click "Deploy"
+   | Key | Value |
+   |-----|-------|
+   | `NEXT_PUBLIC_API_URL` | `https://eaty-backend.onrender.com` (from Step 2) |
+   | `JWT_SECRET` | (same value as backend JWT_SECRET) |
 
-7. **Note the Frontend URL** (e.g., `https://your-app.vercel.app`)
+6. Click **Deploy**
 
----
-
-## Step 3: Update Backend CORS
-
-1. Go back to Render Dashboard → your backend service
-2. Go to **Environment** tab
-3. Update `FRONTEND_URL` to your Vercel URL
-4. Click **Save Changes** (triggers redeploy)
+7. **Note your frontend URL** (e.g., `https://your-app.vercel.app`)
 
 ---
 
-## Step 4: Configure Payment Gateways (Optional)
+## Step 4: Update Backend CORS
+
+1. Go to Render Dashboard → `eaty-backend` → **Environment**
+2. Update `FRONTEND_URL` to your Vercel URL
+3. Click **Save Changes** (triggers redeploy)
+
+---
+
+## Step 5: Configure Payment Gateways (Optional)
 
 ### Paystack
-1. Go to [Paystack Dashboard](https://dashboard.paystack.com)
-2. Settings → API Keys & Webhooks
-3. Copy **Secret Key**
-4. Add to Render backend as `PAYSTACK_SECRET_KEY`
-5. Set webhook URL: `https://eaty-backend.onrender.com/api/webhooks/paystack`
+1. Go to https://dashboard.paystack.com → Settings → API Keys & Webhooks
+2. Copy **Secret Key**
+3. Add to Render as `PAYSTACK_SECRET_KEY`
+4. Set webhook URL: `https://eaty-backend.onrender.com/api/webhooks/paystack`
 
 ### Flutterwave
-1. Go to [Flutterwave Dashboard](https://dashboard.flutterwave.com)
-2. Settings → API Keys
-3. Copy **Secret Key**
-4. Add to Render backend as `FLUTTERWAVE_SECRET_KEY`
-5. Set webhook URL: `https://eaty-backend.onrender.com/api/webhooks/flutterwave`
-
----
-
-## Step 5: Verify Deployment
-
-### Test Backend
-```bash
-curl https://eaty-backend.onrender.com/health
-# Expected: {"status":"ok","timestamp":"..."}
-```
-
-### Test Frontend
-1. Open your Vercel URL in browser
-2. Navigate to `/login`
-3. Login with:
-   - **Email**: `admin@foodappi.com`
-   - **Password**: `admin123`
-4. Navigate to `/admin/dashboard`
-
-### Test API Connection
-1. Open browser DevTools → Network tab
-2. Login on the frontend
-3. Check that API calls go to your Render backend URL
-4. Verify JWT token is stored in localStorage
+1. Go to https://dashboard.flutterwave.com → Settings → API Keys
+2. Copy **Secret Key**
+3. Add to Render as `FLUTTERWAVE_SECRET_KEY`
+4. Set webhook URL: `https://eaty-backend.onrender.com/api/webhooks/flutterwave`
 
 ---
 
@@ -188,8 +177,8 @@ cp .env.example .env
 # Edit .env with your DATABASE_URL and JWT_SECRET
 npm install
 npx prisma generate
-npm run migrate:dev    # or npm run db:push for PGLite
-npm run seed
+npx prisma migrate dev
+npx tsx prisma/seed.ts
 npm run dev            # Runs on http://localhost:4000
 ```
 
@@ -209,7 +198,7 @@ npm run dev            # Runs on http://localhost:3000
 
 ### Backend won't start
 - Check Render logs for errors
-- Verify `DATABASE_URL` is correct
+- Verify `DATABASE_URL` includes `?sslmode=require` (Neon requires SSL)
 - Run `npx prisma generate` in build command
 
 ### CORS errors
@@ -218,22 +207,23 @@ npm run dev            # Runs on http://localhost:3000
 
 ### JWT verification fails
 - `JWT_SECRET` must be identical in both frontend and backend
-- Check that token is being sent in `Authorization: Bearer <token>` header
+- Check token is sent as `Authorization: Bearer <token>`
 
 ### Database migrations fail
 - Run `npx prisma migrate deploy` (not `migrate dev` in production)
-- Check PostgreSQL connection string format
+- Neon requires `?sslmode=require` in connection string
+- Check Neon project is in same region as Render (reduces latency)
 
 ### Frontend can't connect to backend
-- Verify `NEXT_PUBLIC_API_URL` is set correctly in Vercel
-- Check that backend is running and healthy
+- Verify `NEXT_PUBLIC_API_URL` is set in Vercel
+- Check backend is running: `https://eaty-backend.onrender.com/health`
 
 ---
 
 ## File Structure
 
 ```
-foodappi-next/
+eaty/
 ├── backend/                    # Express.js Backend (→ Render)
 │   ├── src/
 │   │   ├── index.ts           # Entry point
@@ -279,4 +269,4 @@ foodappi-next/
 - [ ] Enable rate limiting (already configured)
 - [ ] Set `NODE_ENV=production`
 - [ ] Remove `.env` files from git
-- [ ] Regular database backups (Render auto-backups)
+- [ ] Neon auto-suspends after 5 min idle (wakes on next request — ~1s cold start)
